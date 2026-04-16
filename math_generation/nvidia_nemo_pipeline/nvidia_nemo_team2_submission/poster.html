@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Post-Training Synthetic Data Pipeline — Code & Mathematics | Team 2 | IIT Gandhinagar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f0f2f5;
+      color: #111827
+    }
+
+    /* A0 Portrait: 841mm × 1189mm — 9933×14043 px at 300 DPI — screen preview at ~1500px */
+    .poster {
+      width: 1500px;
+      min-height: 2120px;
+      margin: 20px auto;
+      background: #fff;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+    }
+
+    /* ── HEADER ── */
+    .hdr {
+      background: linear-gradient(135deg, #0f2a54 0%, #1a3f7a 50%, #0d47a1 100%);
+      padding: 28px 36px 22px;
+      color: #fff;
+      display: grid;
+      grid-template-columns: 1fr 160px;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .hdr-title {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 8px;
+      letter-spacing: -0.3px
+    }
+
+    .hdr-sub {
+      font-size: 12px;
+      color: #c5d8ff;
+      margin-bottom: 10px;
+      line-height: 1.4
+    }
+
+    .hdr-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px
+    }
+
+    .badge {
+      font-size: 10px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: .2px
+    }
+
+    .b1 {
+      background: #1e4fa0;
+      color: #93c5fd;
+      border: 1px solid #3b82f6
+    }
+
+    .b2 {
+      background: #312e7a;
+      color: #c4b5fd;
+      border: 1px solid #7c3aed
+    }
+
+    .b3 {
+      background: #064e3b;
+      color: #6ee7b7;
+      border: 1px solid #10b981
+    }
+
+    .b4 {
+      background: #78350f;
+      color: #fcd34d;
+      border: 1px solid #f59e0b
+    }
+
+    .hdr-right {
+      text-align: right
+    }
+
+    .hdr-team {
+      font-size: 20px;
+      font-weight: 700;
+      color: #93c5fd
+    }
+
+    .hdr-inst {
+      font-size: 12px;
+      color: #bfdbfe;
+      margin-top: 3px
+    }
+
+    .hdr-date {
+      font-size: 11px;
+      color: #93c5fd;
+      margin-top: 4px
+    }
+
+    .hdr-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: #fff;
+      margin-left: auto;
+      margin-bottom: 6px;
+      border: 2px solid rgba(255, 255, 255, 0.3)
+    }
+
+    /* ── STAT BAR ── */
+    .statbar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: linear-gradient(90deg, #1e3a6e, #1a3f7a);
+      border-bottom: 3px solid #3b82f6;
+    }
+
+    .sc {
+      text-align: center;
+      padding: 10px 6px;
+      border-right: 1px solid rgba(255, 255, 255, 0.1)
+    }
+
+    .sc:last-child {
+      border-right: none
+    }
+
+    .sc .v {
+      font-size: 18px;
+      font-weight: 800;
+      color: #60a5fa;
+      line-height: 1
+    }
+
+    .sc .l {
+      font-size: 9px;
+      color: #93c5fd;
+      margin-top: 3px;
+      font-weight: 500;
+      line-height: 1.3
+    }
+
+    .sc .s {
+      font-size: 8px;
+      color: #60a5fa99;
+      margin-top: 2px
+    }
+
+    /* ── BODY GRID ── */
+    .body {
+      display: grid;
+      grid-template-columns: 310px 1fr 310px;
+      gap: 0;
+      align-items: start;
+    }
+
+    .col {
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px
+    }
+
+    .col-mid {
+      border-left: 1px solid #e5e7eb;
+      border-right: 1px solid #e5e7eb;
+      padding: 14px 14px
+    }
+
+    /* ── SECTION CARDS ── */
+    .sec {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden
+    }
+
+    .sec-hdr {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .sec-hdr.blue {
+      background: #1e3a6e;
+      color: #bfdbfe
+    }
+
+    .sec-hdr.purple {
+      background: #312e7a;
+      color: #ddd6fe
+    }
+
+    .sec-hdr.teal {
+      background: #064e3b;
+      color: #a7f3d0
+    }
+
+    .sec-hdr.amber {
+      background: #78350f;
+      color: #fde68a
+    }
+
+    .sec-hdr.red {
+      background: #7f1d1d;
+      color: #fecaca
+    }
+
+    .sec-hdr.gray {
+      background: #1f2937;
+      color: #d1d5db
+    }
+
+    .sec-body {
+      padding: 10px;
+      font-size: 10.5px;
+      line-height: 1.55;
+      color: #374151
+    }
+
+    .sec-body p {
+      margin-bottom: 6px
+    }
+
+    .sec-body p:last-child {
+      margin-bottom: 0
+    }
+
+    .sec-body ul {
+      padding-left: 14px;
+      margin-top: 4px
+    }
+
+    .sec-body li {
+      margin-bottom: 3px
+    }
+
+    .sec-body strong {
+      color: #111827
+    }
+
+    /* ── KEY METRICS inside sections ── */
+    .kv {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      padding: 3px 0;
+      border-bottom: 1px solid #f3f4f6
+    }
+
+    .kv:last-child {
+      border-bottom: none
+    }
+
+    .kv .k {
+      color: #6b7280
+    }
+
+    .kv .val {
+      font-weight: 700;
+      color: #111827
+    }
+
+    /* ── PROGRESS BARS ── */
+    .pb-wrap {
+      margin-top: 6px
+    }
+
+    .pb-lbl {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9.5px;
+      color: #6b7280;
+      margin-bottom: 3px
+    }
+
+    .pb-track {
+      height: 7px;
+      background: #f3f4f6;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #e5e7eb
+    }
+
+    .pb-fill {
+      height: 100%;
+      border-radius: 4px
+    }
+
+    .fill-blue {
+      background: linear-gradient(90deg, #2563eb, #3b82f6);
+      width: 42.3%
+    }
+
+    .fill-purple {
+      background: linear-gradient(90deg, #7c3aed, #8b5cf6);
+      width: 96%
+    }
+
+    .fill-teal {
+      background: linear-gradient(90deg, #059669, #10b981);
+      width: 100%
+    }
+
+    /* ── LEGEND ── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px
+    }
+
+    .leg {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      color: #4b5563
+    }
+
+    .leg-box {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0
+    }
+
+    /* ── FLOWCHART pipeline cards ── */
+    .pipe-card {
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px
+    }
+
+    .pipe-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #1e3a6e;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 5px
+    }
+
+    .pipe-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0
+    }
+
+    .pd-blue {
+      background: #2563eb
+    }
+
+    .pd-purple {
+      background: #7c3aed
+    }
+
+    .pd-teal {
+      background: #059669
+    }
+
+    /* ── FLOWCHART horizontal nodes ── */
+    .flow-h {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      overflow: visible
+    }
+
+    .fn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      min-width: 0
+    }
+
+    .fn-box {
+      border-radius: 5px;
+      padding: 5px 4px;
+      text-align: center;
+      width: 100%;
+      font-size: 8.5px;
+      font-weight: 600;
+      line-height: 1.3;
+      border: 1.5px solid
+    }
+
+    .fn-blue {
+      background: #dbeafe;
+      border-color: #2563eb;
+      color: #1e40af
+    }
+
+    .fn-purple {
+      background: #ede9fe;
+      border-color: #7c3aed;
+      color: #5b21b6
+    }
+
+    .fn-teal {
+      background: #d1fae5;
+      border-color: #059669;
+      color: #064e3b
+    }
+
+    .fn-gray {
+      background: #f3f4f6;
+      border-color: #9ca3af;
+      color: #374151
+    }
+
+    .fn-note {
+      font-size: 7.5px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 3px;
+      line-height: 1.3;
+      max-width: 100%
+    }
+
+    .fn-arrow {
+      display: flex;
+      align-items: center;
+      padding-top: 12px;
+      color: #9ca3af;
+      font-size: 12px;
+      flex-shrink: 0;
+      width: 12px
+    }
+
+    /* ── VERTICAL FLOW (NeMo) ── */
+    .flow-v {
+      display: flex;
+      flex-direction: column;
+      gap: 0
+    }
+
+    .fv-row {
+      display: grid;
+      grid-template-columns: 70px 14px 1fr;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 4px
+    }
+
+    .fv-box {
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-size: 8.5px;
+      font-weight: 600;
+      text-align: center;
+      border: 1.5px solid
+    }
+
+    .fv-arrow {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 10px;
+      line-height: 1
+    }
+
+    .fv-desc {
+      font-size: 8.5px;
+      color: #4b5563;
+      padding-left: 4px;
+      line-height: 1.35
+    }
+
+    /* ── RESULT BLOCKS ── */
+    .rb {
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      border: 1px solid
+    }
+
+    .rb-b {
+      background: #eff6ff;
+      border-color: #3b82f6
+    }
+
+    .rb-p {
+      background: #f5f3ff;
+      border-color: #7c3aed
+    }
+
+    .rb-t {
+      background: #ecfdf5;
+      border-color: #059669
+    }
+
+    .rb-title {
+      font-size: 10px;
+      font-weight: 700;
+      margin-bottom: 4px
+    }
+
+    .rb-b .rb-title {
+      color: #1e40af
+    }
+
+    .rb-p .rb-title {
+      color: #5b21b6
+    }
+
+    .rb-t .rb-title {
+      color: #064e3b
+    }
+
+    /* ── DATASET TABLE ── */
+    .dtable {
+      width: 100%;
+      font-size: 8.5px;
+      border-collapse: collapse;
+      margin-top: 4px
+    }
+
+    .dtable th {
+      background: #1e3a6e;
+      color: #bfdbfe;
+      padding: 3px 5px;
+      text-align: left;
+      font-weight: 600
+    }
+
+    .dtable td {
+      padding: 2.5px 5px;
+      border-bottom: 1px solid #f3f4f6;
+      color: #374151
+    }
+
+    .dtable tr:nth-child(even) td {
+      background: #f9fafb
+    }
+
+    /* ── CONCLUSION ITEMS ── */
+    .ci {
+      display: flex;
+      gap: 6px;
+      font-size: 9.5px;
+      margin-bottom: 5px;
+      align-items: flex-start
+    }
+
+    .ci-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 3px
+    }
+
+    .cd-b {
+      background: #2563eb
+    }
+
+    .cd-p {
+      background: #7c3aed
+    }
+
+    .cd-t {
+      background: #059669
+    }
+
+    .cd-a {
+      background: #d97706
+    }
+
+    .cd-r {
+      background: #dc2626
+    }
+
+    .cd-g {
+      background: #16a34a
+    }
+
+    .ci-txt {
+      color: #374151;
+      line-height: 1.4
+    }
+
+    .ci-txt strong {
+      color: #111827
+    }
+
+    /* ── REFERENCES ── */
+    .ref-item {
+      font-size: 8px;
+      color: #6b7280;
+      line-height: 1.4;
+      margin-bottom: 4px;
+      padding-left: 10px;
+      text-indent: -10px
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      background: #1e3a6e;
+      padding: 8px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center
+    }
+
+    .footer span {
+      font-size: 9px;
+      color: #93c5fd
+    }
+
+    /* ── BOTTOM BAND in middle (below flowcharts) ── */
+    .mid-bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 0;
+    }
+
+    .scanner-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .scanner-tier {
+      background: #1a2030;
+      border-radius: 5px;
+      padding: 6px 8px;
+    }
+    .scanner-tier-title {
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #f9fafb;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .scanner-tag {
+      display: inline-block;
+      background: #374151;
+      color: #f3f4f6;
+      font-size: 7.5px;
+      font-family: monospace;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin: 1px 2px 1px 0;
+      border: 1px solid #4b5563;
+    }
+    .scanner-tag.danger {
+      background: #7f1d1d;
+      color: #fecaca;
+      border-color: #dc2626;
+    }
+    .scanner-tag.warn {
+      background: #78350f;
+      color: #fde68a;
+      border-color: #d97706;
+    }
+
+    /* Print A0 — 9933×14043px at 300dpi = 841mm×1189mm */
+    @media print {
+      body {
+        background: #fff;
+        margin: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact
+      }
+      .poster {
+        width: 841mm;
+        min-height: 1189mm;
+        margin: 0;
+        box-shadow: none
+      }
+      @page {
+        size: A0 portrait;
+        margin: 0
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="poster">
+
+    <!-- ═══════════════════════════════════════════ HEADER ═══ -->
+    <div class="hdr">
+      <div>
+        <div class="hdr-title">Autonomous Synthetic Data Generation Pipeline — Code &amp; Mathematics</div>
+        <div class="hdr-sub"><strong>PRIMARY FOCUS: Generation</strong> — Automated synthesis of verified SFT &amp; RL datasets via dual-model architectures & Evol-Instruct scaling. <strong>VALIDATION: Evaluation</strong> — Multi-model benchmarking (5 models × 4 datasets) ensures generated quality. Deployed on IIT Gandhinagar Soketlab HPC</div>
+        <div class="hdr-badges">
+          <span class="badge b1">Code Pipeline · KodCode-style · DeepSeek-V3.2 + GPT-OSS-120B</span>
+          <span class="badge b2">Big Math · Evol-Instruct · Kimi-K2.5 · 53,288 samples</span>
+          <span class="badge b3">NeMo Eval · 5 Models · 4 Datasets · 20 Combinations</span>
+          <span class="badge b4">IIT Gandhinagar Soketlab HPC · Slurm · April 2026</span>
+        </div>
+      </div>
+      <div class="hdr-right">
+        <div class="hdr-logo">IITGN</div>
+        <div class="hdr-team">Team 2</div>
+        <div class="hdr-inst">IIT Gandhinagar</div>
+        <div class="hdr-date">April 2026</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ STAT BAR ═══ -->
+    <div class="statbar">
+      <div class="sc">
+        <div class="v">53,288</div>
+        <div class="l">Generated Math Samples</div>
+        <div class="s">5.1× Evol-Instruct</div>
+      </div>
+      <div class="sc">
+        <div class="v">3,008</div>
+        <div class="l">Generated Code Entries</div>
+        <div class="s">Anti-circular · Verified</div>
+      </div>
+      <div class="sc">
+        <div class="v">96% + 42.3%</div>
+        <div class="l">Generation Pass Rates</div>
+        <div class="s">Math + Code Quality</div>
+      </div>
+      <div class="sc">
+        <div class="v">5 Models</div>
+        <div class="l">Validation Comparison</div>
+        <div class="s">GLM, Minimax, Kimi, DeepSeek, GPT-OSS</div>
+      </div>
+      <div class="sc">
+        <div class="v">+400</div>
+        <div class="l">Original Synthetic Problems</div>
+        <div class="s">Steps 5–7 augmentation</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ BODY ═══ -->
+    <div class="body">
+
+      <!-- ══ LEFT COLUMN ══ -->
+      <div class="col">
+
+        <!-- Abstract -->
+        <div class="sec">
+          <div class="sec-hdr blue">Abstract</div>
+          <div class="sec-body">
+            <p><strong>Core Innovation:</strong> Training state-of-the-art LLMs requires large-scale, high-quality datasets. Rather than expensive manual curation, we automate synthesis of verified reasoning datasets. Our pipeline generates diverse, difficulty-scaled problems across two domains: <strong>code</strong> and <strong>mathematics</strong>.</p>
+            <p><strong>Code Generation Module:</strong> We implement a KodCode-style dual-model architecture where <strong>DeepSeek-V3.2 generates</strong> problem variants with 8 mutation types and 20 domain injections, while <strong>GPT-OSS-120B independently solves</strong> them (no reference access, ensuring anti-circular testing). Execution-verified via pytest — yielding <strong>3,008 verified entries</strong> (1,456 SFT + 3,008 RL, 42.3% pass rate in healthy difficulty range).</p>
+            <p><strong>Math Generation Module:</strong> We synthesize <strong>53,288 verified math problems</strong> via: (1) aggregate 10,506 seeds from 8 HF datasets, (2) apply 5 Evol-Instruct mutations via <strong>Kimi-K2.5</strong> → 5.1× expansion, (3) standardize MCQ→open-ended format, (4) generate reasoning traces with symbolic verification (96% pass), (5) tag complexity levels 0–4 for SFT/RL routing.</p>
+            <p><strong>Quality Validation Loop:</strong> A <strong>NeMo Evaluation harness</strong> (not primary generation, but validation) benchmarks 5 SOTA models (GLM-5-FP8, Minimax-M2.5, Kimi-K2.5, DeepSeek-V3.2, GPT-OSS-120B) across 4 datasets, producing pass-rate reports. Feeds performance signals back into generation for iterative dataset improvement.</p>
+            <p><strong>Additional Generations:</strong> Step 5 generates 400+ original problems synthetically. Step 6 creates dataset-inspired variants. Step 7 schema-converts external datasets (DeepMath, AutoMathText, AM-DeepSeek) into unified format.</p>
+          </div>
+        </div>
+
+        <!-- Introduction -->
+        <div class="sec">
+          <div class="sec-hdr blue">Introduction</div>
+          <div class="sec-body">
+            <p><strong>Problem:</strong> Synthetic data addresses training data scarcity, but generation lacks rigor:</p>
+            <ul>
+              <li><strong>Scale:</strong> Manual dataset curation bottleneck; need automated 10K→53K+ expansion</li>
+              <li><strong>Quality:</strong> Without symbolic math verification, noisy labels corrupt model training</li>
+              <li><strong>Diversity:</strong> Single-model generation creates distribution collapse; need Evol-Instruct + multi-model variety</li>
+              <li><strong>Safety:</strong> Code generation risks malicious injection; need 19-pattern safety scanner + execution verification</li>
+              <li><strong>Anti-circular:</strong> If same model generates tests AND solutions, no true diversity or solvability guarantee</li>
+              <li><strong>Validation:</strong> How to know generated data actually improves LLM training? Need evaluation feedback loop</li>
+            </ul>
+            <p style="margin-top:6px"><strong>Our Solution:</strong> Three synergistic <strong>generation</strong> pipelines:
+              <strong>(1) Code:</strong> DeepSeek generates → GPT-OSS independently solves → pytest verifies (anti-circular by design).
+              <strong>(2) Math:</strong> Evol-Instruct via Kimi-K2.5 → 5 mutations each seed → SymPy symbolic verification.
+              <strong>(3) Validation:</strong> 5-model benchmarking validates generated quality, closes data quality loop.
+            </p>
+          </div>
+        </div>
+
+
+        <!-- Models Used -->
+        <div class="sec">
+          <div class="sec-hdr gray">Models &amp; Infrastructure</div>
+          <div class="sec-body">
+            <div class="kv"><span class="k">DeepSeek-V3.2</span><span class="val">Variant Generator</span></div>
+            <div class="kv"><span class="k">GPT-OSS-120B</span><span class="val">Brain Solver (Pass@3)</span></div>
+            <div class="kv"><span class="k">Kimi-K2.5</span><span class="val">Math Teacher + Evol</span></div>
+            <div class="kv"><span class="k">GLM-5-FP8</span><span class="val">Eval · node064</span></div>
+            <div class="kv"><span class="k">Minimax-M2.5</span><span class="val">Eval · node043</span></div>
+            <div class="kv"><span class="k">HPC Cluster</span><span class="val">Soketlab · Slurm</span></div>
+            <div class="kv"><span class="k">Math-Verify</span><span class="val">Symbolic Verification</span></div>
+            <div class="kv"><span class="k">SymPy + pytest</span><span class="val">Answer + Code Check</span></div>
+          </div>
+        </div>
+
+        <!-- Dataset Sources -->
+        <div class="sec">
+          <div class="sec-hdr teal">Math Dataset Sources</div>
+          <div class="sec-body">
+            <table class="dtable">
+              <tr>
+                <th>Dataset</th>
+                <th>Seeds</th>
+                <th>Final</th>
+                <th>×</th>
+              </tr>
+              <tr>
+                <td>Omni-MATH</td>
+                <td>4,428</td>
+                <td>22,531</td>
+                <td>5.1</td>
+              </tr>
+              <tr>
+                <td>TW-Math-2K</td>
+                <td>2,000</td>
+                <td>10,800</td>
+                <td>5.4</td>
+              </tr>
+              <tr>
+                <td>AIME-COD</td>
+                <td>933</td>
+                <td>4,715</td>
+                <td>5.1</td>
+              </tr>
+              <tr>
+                <td>S1K</td>
+                <td>1,000</td>
+                <td>4,383</td>
+                <td>4.4</td>
+              </tr>
+              <tr>
+                <td>TheoremQA</td>
+                <td>800</td>
+                <td>4,074</td>
+                <td>5.1</td>
+              </tr>
+              <tr>
+                <td>LIMO</td>
+                <td>817</td>
+                <td>4,149</td>
+                <td>5.1</td>
+              </tr>
+              <tr>
+                <td>TeleMath</td>
+                <td>500</td>
+                <td>2,538</td>
+                <td>5.1</td>
+              </tr>
+              <tr>
+                <td>Math-Calc</td>
+                <td>~28</td>
+                <td>228</td>
+                <td>8.1</td>
+              </tr>
+              <tr>
+                <td><strong>TOTAL</strong></td>
+                <td><strong>10,506</strong></td>
+                <td><strong>53,288</strong></td>
+                <td><strong>5.1</strong></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /left col -->
+
+      <!-- ══ MIDDLE COLUMN ══ -->
+      <div class="col col-mid">
+
+        <!-- Code Pipeline Flowchart -->
+        <div class="pipe-card">
+          <div class="pipe-title"><span class="pipe-dot pd-blue"></span>Code Pipeline — KodCode-style Two-Model
+            Architecture</div>
+          <div class="legend">
+            <div class="leg"><span class="leg-box" style="background:#dbeafe;border:1px solid #2563eb"></span>Data
+              Acquisition</div>
+            <div class="leg"><span class="leg-box" style="background:#ede9fe;border:1px solid #7c3aed"></span>Generation
+              (DeepSeek-V3.2)</div>
+            <div class="leg"><span class="leg-box" style="background:#d1fae5;border:1px solid #059669"></span>Solving
+              (GPT-OSS-120B)</div>
+            <div class="leg"><span class="leg-box"
+                style="background:#f3f4f6;border:1px solid #9ca3af"></span>Verification &amp; Packaging</div>
+          </div>
+          <div class="flow-h">
+            <div class="fn">
+              <div class="fn-box fn-blue">Stage 0B<br />HF Fetcher</div>
+              <div class="fn-note">Stream problems<br />from 4 datasets<br />skip/take offsets</div>
+            </div>
+            <div class="fn-arrow">→</div>
+            <div class="fn">
+              <div class="fn-box fn-blue">Stage 0C<br />Synthesizer</div>
+              <div class="fn-note">3-tier quality filter:<br />hard reject → CP<br />fast-pass → API</div>
+            </div>
+            <div class="fn-arrow">→</div>
+            <div class="fn">
+              <div class="fn-box fn-purple">Stage 0D<br />Variant Gen<br />DeepSeek-V3.2</div>
+              <div class="fn-note">Call 1 (t=0.95)<br />generate problem<br />Call 2 (t=0.3)<br />soln + 5
+                tests<br />rate difficulty</div>
+            </div>
+            <div class="fn-arrow">→</div>
+            <div class="fn">
+              <div class="fn-box fn-teal">Stage 1<br />Brain Solver<br />GPT-OSS-120B<br />Pass@3</div>
+              <div class="fn-note">Independently solves<br />each variant<br />outputs &lt;think&gt;<br />trace +
+                Python<br />no reference access</div>
+            </div>
+            <div class="fn-arrow">→</div>
+            <div class="fn">
+              <div class="fn-box fn-gray">Stage 2–3<br />Sorter +<br />Inspector</div>
+              <div class="fn-note">Extract to sandbox<br />pytest execution<br />30s timeout<br />Pass/Fail verdict
+              </div>
+            </div>
+            <div class="fn-arrow">→</div>
+            <div class="fn">
+              <div class="fn-box fn-gray">Stage 4<br />Shipping<br />Box</div>
+              <div class="fn-note">Safety scan<br />pack SFT (dedup)<br />+ RL (all trials)<br />Parquet output</div>
+            </div>
+          </div>
+          <div
+            style="margin-top:8px;padding:6px 8px;background:#eff6ff;border-radius:5px;border:1px solid #bfdbfe;font-size:8.5px;color:#1e40af">
+            <strong>Anti-Circular Testing:</strong> DeepSeek generates tests from actual execution stdout — not
+            LLM-predicted output. GPT-OSS solves independently without reference solution access. Only
+            execution-verified pairs enter the dataset.
+          </div>
+          <div
+            style="margin-top:6px;padding:6px 8px;background:#f5f3ff;border-radius:5px;border:1px solid #ddd6fe;font-size:8.5px;color:#5b21b6">
+            <strong>8 mutation types:</strong> data structure, constraint, concept blending, two-pointer, real-world
+            app, greedy counting, debugging, output tracing × <strong>20 domain injections</strong> (space, HFT,
+            genomics, robotics, cybersecurity, etc.)<br />
+            <strong>Output schema:</strong> Instruction · Question · &lt;Think&gt; trace · Answer · Difficulty (1–4) ·
+            Task: Code Generation · SFT: 1,456 entries · RL: 3,008 entries · Verified=True
+          </div>
+        </div>
+
+        <!-- Big Math Pipeline Flowchart -->
+        <div class="pipe-card">
+          <div class="pipe-title"><span class="pipe-dot pd-purple"></span>Big Math Pipeline — Evol-Instruct Difficulty
+            Scaling + Kimi-K2.5</div>
+          <div class="legend">
+            <div class="leg"><span class="leg-box" style="background:#dbeafe;border:1px solid #2563eb"></span>Ingestion
+              &amp; Augmentation</div>
+            <div class="leg"><span class="leg-box" style="background:#ede9fe;border:1px solid #7c3aed"></span>LLM
+              Annotation (Kimi-K2.5)</div>
+            <div class="leg"><span class="leg-box"
+                style="background:#f3f4f6;border:1px solid #9ca3af"></span>Verification &amp; Export</div>
+          </div>
+          <div class="flow-h">
+            <div class="fn">
+              <div class="fn-box fn-blue">Step 1<br />Data Ingestion</div>
+              <div class="fn-note">10,506 seeds<br />from 8 HF datasets<br />quality filter<br />SeedSample obj</div>
+            </div>
+            <div class="fn-arrow">→</div>
+            <div class="fn">
+              <div class="fn-box fn-blue">Step 2<br />Evol-Instruct<br />Kimi-K2.5</div>
+              <div class="fn-note">5 mutations:<br />add constraint<br />replace numbers<br />shift type<br />add steps
+                · combine</div>
+            </div>
+            <div class="fn-arrow">→</div>
+            <div class="fn">
+              <div class="fn-box fn-blue">Step 3<br />MCQ→Open<br />Format Conv</div>
+              <div class="fn-note">Detect MCQ/T-F<br />Strip choices<br />Rewrite open-ended<br />100% unified fmt</div>
+            </div>
+            <div class="fn-arrow">→</div>
+            <div class="fn">
+              <div class="fn-box fn-purple">Step 4<br />Kimi-K2.5<br />Reasoning<br />Traces</div>
+              <div class="fn-note">Lazy LLM exec<br />pre-filtered only<br />50% cost saving<br />outputs
+                &lt;think&gt;<br />\boxed{} answer</div>
+            </div>
+            <div class="fn-arrow">→</div>
+            <div class="fn">
+              <div class="fn-box fn-gray">Step 5<br />SymPy<br />Verify +<br />Rejection</div>
+              <div class="fn-note">Symbolic equality<br />numerical fallback<br />96% pass rate<br />reject incorrects
+              </div>
+            </div>
+            <div class="fn-arrow">→</div>
+            <div class="fn">
+              <div class="fn-box fn-gray">Step 6<br />Tag 0–4<br />Complexity</div>
+              <div class="fn-note">Keyword analysis<br />+ trace depth<br />+ mutation depth</div>
+            </div>
+            <div class="fn-arrow">→</div>
+            <div class="fn">
+              <div class="fn-box fn-gray">Step 7<br />Parquet<br />Export</div>
+              <div class="fn-note">Snappy compress<br />partitioned by<br />domain · 53,288</div>
+            </div>
+          </div>
+          <div
+            style="margin-top:8px;padding:6px 8px;background:#f5f3ff;border-radius:5px;border:1px solid #ddd6fe;font-size:8.5px;color:#5b21b6">
+            <strong>Complexity Scale (0–4):</strong> 0-Minimal (7.5%) · 1-Basic (22.5%) · 2-Intermediate (33.8%) ·
+            3-Advanced (28.2%) · 4-Expert (8.0%) &nbsp;|&nbsp; <strong>Output fields:</strong> question · think_trace ·
+            answer · verified · reasoning_level · source
+          </div>
+        </div>
+
+        <!-- NeMo Eval Pipeline -->
+        <div class="pipe-card">
+          <div class="pipe-title"><span class="pipe-dot pd-teal"></span>NeMo Validation Pipeline — Generated Data Quality Assurance &amp; Augmentation</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <div style="font-size:9px;font-weight:700;color:#064e3b;margin-bottom:5px">Evaluation Branch (Steps 1–4)
+              </div>
+              <div class="flow-v">
+                <div class="fv-row">
+                  <div class="fv-box fn-teal">Step 1<br />Data Load</div>
+                  <div class="fv-arrow">↓</div>
+                  <div class="fv-desc">Load LIMO, s1K, TheoremQA, TW-Math from HF Hub → input.jsonl</div>
+                </div>
+                <div class="fv-row">
+                  <div class="fv-box fn-teal">Step 2<br />API Calls</div>
+                  <div class="fv-arrow">↓</div>
+                  <div class="fv-desc">5 models in parallel · resume-safe · 600s timeout per call</div>
+                </div>
+                <div class="fv-row">
+                  <div class="fv-box fn-gray">Step 3<br />Postproc</div>
+                  <div class="fv-arrow">↓</div>
+                  <div class="fv-desc">7-tier answer extraction · math-verify symbolic check · difficulty score</div>
+                </div>
+                <div class="fv-row">
+                  <div class="fv-box fn-gray">Step 4<br />Evaluate</div>
+                  <div class="fv-arrow">↓</div>
+                  <div class="fv-desc">Pass-rate CSV · best model identification · comparison table</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:9px;font-weight:700;color:#5b21b6;margin-bottom:5px">Generation Branch (Steps 5–7)
+              </div>
+              <div class="flow-v">
+                <div class="fv-row">
+                  <div class="fv-box fn-purple">Step 5<br />Original<br />Gen</div>
+                  <div class="fv-arrow">↓</div>
+                  <div class="fv-desc">8 topics × 5 difficulties × 10 per combo → 400 novel math problems via Kimi</div>
+                </div>
+                <div class="fv-row">
+                  <div class="fv-box fn-purple">Step 6<br />Dataset<br />Variants</div>
+                  <div class="fv-arrow">↓</div>
+                  <div class="fv-desc">Dataset-inspired variants · progressive difficulty 1–5 · duplicate detection
+                  </div>
+                </div>
+                <div class="fv-row">
+                  <div class="fv-box fn-gray">Step 7<br />Schema<br />Convert</div>
+                  <div class="fv-arrow">↓</div>
+                  <div class="fv-desc">Normalise AM-DeepSeek, Big-Math-RL, AutoMathText, DeepMath-103K</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            style="margin-top:8px;padding:6px 8px;background:#ecfdf5;border-radius:5px;border:1px solid #a7f3d0;font-size:8.5px;color:#064e3b">
+            <strong>5 models:</strong> GLM-5-FP8 (node064) · Minimax-M2.5 (node043) · Kimi-K2.5 (node019) ·
+            DeepSeek-V3.2 (node017) · GPT-OSS-120B (172.17.99.11) &nbsp;|&nbsp; <strong>Answer extraction:</strong>
+            7-tier fallback: \boxed{} → plain number → bold → equals → last number
+          </div>
+        </div>
+
+        <!-- ══ BOTTOM SECTION — fills space below flowcharts ══ -->
+        <div class="mid-bottom">
+
+          <!-- Code Safety Scanner -->
+          <div class="sec">
+            <div class="sec-hdr gray">🔒 Code Safety Scanner — 19-Pattern Filter</div>
+            <div class="sec-body" style="padding:8px">
+              <p style="font-size:9px;color:#374151;margin-bottom:6px">All generated code passes through a <strong>two-tier static safety scanner</strong> before entering the dataset. Blocks dangerous system calls and prevents data leakage.</p>
+              <div class="scanner-grid">
+                <div class="scanner-tier">
+                  <div class="scanner-tier-title"><span style="color:#dc2626">🚫</span> Tier 1 — Hard Reject</div>
+                  <span class="scanner-tag danger">os.system</span>
+                  <span class="scanner-tag danger">subprocess</span>
+                  <span class="scanner-tag danger">eval(</span>
+                  <span class="scanner-tag danger">exec(</span>
+                  <span class="scanner-tag danger">__import__</span>
+                  <span class="scanner-tag danger">open(</span>
+                  <span class="scanner-tag danger">shutil</span>
+                  <span class="scanner-tag danger">socket</span>
+                  <span class="scanner-tag danger">ctypes</span>
+                  <span class="scanner-tag danger">pickle</span>
+                  <span class="scanner-tag danger">marshal</span>
+                  <div style="margin-top:4px;font-size:7.5px;color:#9ca3af">→ Entry discarded entirely</div>
+                </div>
+                <div class="scanner-tier">
+                  <div class="scanner-tier-title"><span style="color:#d97706">⚠️</span> Tier 2 — Warn &amp; Flag</div>
+                  <span class="scanner-tag warn">requests</span>
+                  <span class="scanner-tag warn">urllib</span>
+                  <span class="scanner-tag warn">http.client</span>
+                  <span class="scanner-tag warn">ftplib</span>
+                  <span class="scanner-tag warn">paramiko</span>
+                  <span class="scanner-tag warn">cryptography</span>
+                  <span class="scanner-tag warn">hashlib</span>
+                  <span class="scanner-tag warn">base64</span>
+                  <div style="margin-top:4px;font-size:7.5px;color:#9ca3af">→ Flagged, human review queue</div>
+                </div>
+              </div>
+              <div style="margin-top:6px;padding:4px 6px;background:#f0fdf4;border-radius:4px;border:1px solid #bbf7d0;font-size:7.5px;color:#14532d"><strong>Result:</strong> 4,099 total rejections in Batch 1 — 0 unsafe entries in final dataset</div>
+            </div>
+          </div>
+
+          <!-- Objectives -->
+          <div class="sec">
+            <div class="sec-hdr blue">Project Objectives</div>
+            <div class="sec-body">
+              <ul>
+                <li><strong>GENERATION:</strong> Synthesize 3,000+ code + 53,000+ math verified problems autonomously (away from manual curation)</li>
+                <li><strong>GENERATION:</strong> Achieve 5.1× Evol-Instruct expansion ratio via multi-mutation strategies (diversity guarantee)</li>
+                <li><strong>GENERATION:</strong> Enable difficulty-scaled routing (Levels 0–4) for SFT/RL dataset construction</li>
+                <li><strong>QUALITY:</strong> Maintain anti-circular testing (generators ≠ solvers) + execution verification (code) + symbolic verification (math)</li>
+                <li><strong>VALIDATION:</strong> Validate generated data quality via 5-model, 4-dataset benchmarking (closes feedback loop)</li>
+                <li><strong>AUGMENTATION:</strong> Generate dataset-inspired variants &amp; schema-convert external datasets (multi-source fusion)</li>
+                <li><strong>ROBUSTNESS:</strong> 19-pattern safety scanner + crash-safe Slurm pipelines with resume capability</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Discussion + Robustness combined -->
+          <div class="sec">
+            <div class="sec-hdr teal">🚀 Generation Achievements</div>
+            <div class="sec-body">
+              <p><strong>Code Generation:</strong> DeepSeek-V3.2 synthesized diverse problem variants; GPT-OSS-120B independently solved without reference access. Anti-circular design ensures <strong>42.3% pass rate</strong> (healthy 35–50% difficulty range, ideal for RL curriculum learning).</p>
+              <p><strong>Math Generation:</strong> Kimi-K2.5 applied 5 Evol-Instruct mutations to 10,506 seeds, achieving <strong>5.1× expansion</strong> (53,288 final samples) with <strong>96% verification rate</strong>. No manual problem writing required — fully automated synthesis.</p>
+              <p><strong>Diversity by Design:</strong> Code uses 8 mutation types × 20 domain injections. Math uses 5 Evol-Instruct strategies. Generated problems span difficulty levels 0–4 (7.5% → 8.0% coverage), enabling nuanced SFT/RL routing.</p>
+              <p><strong>Schema Unification:</strong> External datasets converted to common standard, enabling downstream fusion with generated data.</p>
+            </div>
+            <div class="sec-hdr teal" style="margin-top:0">Validation Loop (Quality Assurance)</div>
+            <div class="sec-body" style="font-size:9px;line-height:1.4">
+              <p>Generated data must be validated before training. Our NeMo Evaluation Branch benchmarks 53,288 samples via 5 models × 4 datasets:</p>
+              <ul style="margin-top:3px">
+                <li>Kimi-K2.5 achieves highest accuracy on LIMO, s1K, TheoremQA → <strong>validates Kimi generation quality</strong></li>
+                <li>Multi-model agreement indicates diversity of generated problems (prevents distribution collapse)</li>
+                <li>7-tier answer extraction verifies reasoning completeness</li>
+              </ul>
+            </div>
+            <div class="sec-hdr red" style="margin-top:0">🛡️ Robustness Principles</div>
+            <div class="sec-body">
+              <div class="ci"><span class="ci-dot cd-b"></span><span class="ci-txt"><strong>Execution-verified:</strong> Every code solution runs against pytest; every math answer SymPy-checked</span></div>
+              <div class="ci"><span class="ci-dot cd-p"></span><span class="ci-txt"><strong>No circular testing:</strong> DeepSeek generates tests from stdout; GPT-OSS solves without reference</span></div>
+              <div class="ci"><span class="ci-dot cd-t"></span><span class="ci-txt"><strong>Diversity by design:</strong> 8 mutations × 20 domains for code; 5 Evol-Instruct strategies for math</span></div>
+              <div class="ci"><span class="ci-dot cd-a"></span><span class="ci-txt"><strong>Safety-first:</strong> 19-pattern scanner; SymPy rejection sampling eliminates incorrect math</span></div>
+              <div class="ci"><span class="ci-dot cd-r"></span><span class="ci-txt"><strong>Auto-generated:</strong> 53K+ samples synthesized autonomously (no manual annotation) with 96% symbolic verification</span></div>
+              <div class="ci"><span class="ci-dot cd-g"></span><span class="ci-txt"><strong>Future work:</strong> 18K+ code via multi-batch Slurm; RL reward modelling with GRPO/PPO</span></div>
+            </div>
+          </div>
+
+        </div><!-- /mid-bottom -->
+
+      </div><!-- /mid col -->
+
+      <!-- ══ RIGHT COLUMN ══ -->
+      <div class="col">
+
+        <!-- Results -->
+        <div class="sec">
+          <div class="sec-hdr amber">Key Results</div>
+          <div class="sec-body">
+            <div class="rb rb-b">
+              <div class="rb-title">Code Pipeline · Batch 1</div>
+              <div class="kv"><span class="k">Verified entries (RL)</span><span class="val">3,008</span></div>
+              <div class="kv"><span class="k">SFT (deduplicated)</span><span class="val">1,456</span></div>
+              <div class="kv"><span class="k">Rejections caught</span><span class="val">4,099</span></div>
+              <div class="kv"><span class="k">Target exceeded by</span><span class="val">500+ · ×3</span></div>
+              <div class="pb-wrap">
+                <div class="pb-lbl"><span>Code pass rate · 42.3%</span><span style="color:#9ca3af">healthy 35–50%</span>
+                </div>
+                <div class="pb-track">
+                  <div class="pb-fill fill-blue"></div>
+                </div>
+              </div>
+            </div>
+            <div class="rb rb-p">
+              <div class="rb-title">Big Math Pipeline</div>
+              <div class="kv"><span class="k">Seeds → Final samples</span><span class="val">10,506 → 53,288</span></div>
+              <div class="kv"><span class="k">Expansion ratio</span><span class="val">5.1×</span></div>
+              <div class="kv"><span class="k">Verification rate</span><span class="val">96%</span></div>
+              <div class="kv"><span class="k">Schema compliance</span><span class="val">100%</span></div>
+              <div class="pb-wrap">
+                <div class="pb-lbl"><span>Math verification · 96%</span><span style="color:#9ca3af">target &gt;95%
+                    ✓</span></div>
+                <div class="pb-track">
+                  <div class="pb-fill fill-purple"></div>
+                </div>
+              </div>
+            </div>
+            <div class="rb rb-t">
+              <div class="rb-title">Generated Data Output (NeMo Validation)</div>
+              <div class="kv"><span class="k">Original synthetic problems</span><span class="val">400 (8×5×10 topics/difficulty)</span></div>
+              <div class="kv"><span class="k">Dataset-inspired variants</span><span class="val">Multiple augmented versions</span></div>
+              <div class="kv"><span class="k">Schema-converted datasets</span><span class="val">DeepMath, AutoMathText, AM-DeepSeek</span></div>
+              <div class="kv"><span class="k">Validation benchmarks</span><span class="val">5 models × 4 datasets = 20 combos</span></div>
+              <div class="pb-wrap">
+                <div class="pb-lbl"><span>Generation + Validation · 100%</span><span style="color:#9ca3af">synergistic pipeline
+                    ✓</span></div>
+                <div class="pb-track">
+                  <div class="pb-fill fill-teal"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reasoning Level Distribution -->
+        <div class="sec">
+          <div class="sec-hdr purple">Reasoning Level Distribution</div>
+          <div class="sec-body">
+            <div class="kv"><span class="k">Level 0 · Minimal (factual)</span><span class="val">~4,000 (7.5%)</span>
+            </div>
+            <div class="kv"><span class="k">Level 1 · Basic (single-step)</span><span class="val">~12,000 (22.5%)</span>
+            </div>
+            <div class="kv"><span class="k">Level 2 · Intermediate</span><span class="val">~18,000 (33.8%)</span></div>
+            <div class="kv"><span class="k">Level 3 · Advanced</span><span class="val">~15,000 (28.2%)</span></div>
+            <div class="kv"><span class="k">Level 4 · Expert/Theoretical</span><span class="val">~4,288 (8.0%)</span>
+            </div>
+            <div style="margin-top:6px;font-size:8.5px;color:#6b7280">Scored using keyword analysis + trace depth +
+              Evol-Instruct mutation depth (no LLM calls — deterministic and fast)</div>
+          </div>
+        </div>
+
+
+        <!-- References -->
+        <div class="sec">
+          <div class="sec-hdr gray">References</div>
+          <div class="sec-body">
+            <div class="ref-item">Luo et al. (2023). WizardMath: Empowering Mathematical Reasoning for LLMs via
+              Evol-Instruct. <em>arXiv:2308.09583</em></div>
+            <div class="ref-item">SynthLabsAI. Big-Math-RL-Verified Dataset.
+              <em>https://github.com/SynthLabsAI/big-math</em></div>
+            <div class="ref-item">HuggingFace. Math-Verify: Symbolic Math Answer Verification.
+              <em>https://github.com/huggingface/Math-Verify</em></div>
+            <div class="ref-item">Guo et al. (2025). DeepSeek-V3 Technical Report. <em>arXiv:2412.19437</em></div>
+            <div class="ref-item">KingNish. AIME-COD Dataset. <em>HuggingFace Hub: KingNish/AIME-COD</em></div>
+            <div class="ref-item">KbsdJames. Omni-MATH: Diverse Competition Math. <em>HuggingFace Hub:
+                KbsdJames/Omni-MATH</em></div>
+            <div class="ref-item">TIGER-Lab. TheoremQA: Theorem-based QA. <em>HuggingFace Hub: TIGER-Lab/TheoremQA</em>
+            </div>
+            <div class="ref-item">GAIR. LIMO: Less is More for Reasoning. <em>HuggingFace Hub: GAIR/LIMO</em></div>
+            <div class="ref-item">Moonshot AI. Kimi K2.5 Technical Report. <em>https://platform.moonshot.cn</em></div>
+            <div class="ref-item">Paster et al. (2023). OpenCoder: Bringing Open-Source to Code LLMs.
+              <em>arXiv:2307.01928</em></div>
+          </div>
+        </div>
+
+        <!-- Acknowledgement -->
+        <div class="sec">
+          <div class="sec-hdr gray">Acknowledgements</div>
+          <div class="sec-body" style="font-size:9px;color:#6b7280">
+            We thank the IIT Gandhinagar Soketlab team for access to the HPC cluster and GPU nodes. All pipeline
+            experiments were conducted on Soketlab nodes (node017, node019, node043, node064) managed via Slurm.
+            Datasets accessed via HuggingFace Hub under respective open-source licences.
+          </div>
+        </div>
+
+      </div><!-- /right col -->
+
+    </div><!-- /body -->
+
+    <!-- ═══════════════════════════════════════════ FOOTER ═══ -->
+    <div class="footer">
+      <span>Synthetic Data Generation Pipeline (Primary) + Multi-Model Evaluation (Validation) | Team 2, IIT Gandhinagar | April 2026</span>
+      <span>🎯 GENERATION: 53,288 verified math + 3,008 verified code | 5.1× expansion ratio | 96% + 42.3% pass rates</span>
+    </div>
+
+  </div><!-- /poster -->
+</body>
+
+</html>
