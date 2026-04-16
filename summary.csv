@@ -1,0 +1,11 @@
+model,dataset,total,pass,fail,unknown,pass_pct
+deepseek-v3.2,LIMO,200,177,22,1,88.5
+deepseek-v3.2,s1K,200,75,30,95,37.5
+glm-5-fp8,LIMO,200,105,95,0,52.5
+glm-5-fp8,s1K,200,53,127,20,26.5
+gpt-oss-120b,LIMO,200,127,22,51,63.5
+gpt-oss-120b,s1K,200,55,38,107,27.5
+kimi-k2.5,LIMO,200,179,21,0,89.5
+kimi-k2.5,s1K,200,86,61,53,43.0
+minimax-m2.5,LIMO,200,164,28,8,82.0
+minimax-m2.5,s1K,200,69,81,50,34.5
