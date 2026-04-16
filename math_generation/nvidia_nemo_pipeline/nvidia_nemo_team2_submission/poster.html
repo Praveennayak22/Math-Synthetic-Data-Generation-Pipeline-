@@ -782,8 +782,9 @@
             <p><strong>Core Innovation:</strong> Training state-of-the-art LLMs requires large-scale, high-quality datasets. Rather than expensive manual curation, we automate synthesis of verified reasoning datasets. Our pipeline generates diverse, difficulty-scaled problems across two domains: <strong>code</strong> and <strong>mathematics</strong>.</p>
             <p><strong>Code Generation Module:</strong> We implement a KodCode-style dual-model architecture where <strong>DeepSeek-V3.2 generates</strong> problem variants with 8 mutation types and 20 domain injections, while <strong>GPT-OSS-120B independently solves</strong> them (no reference access, ensuring anti-circular testing). Execution-verified via pytest — yielding <strong>3,008 verified entries</strong> (1,456 SFT + 3,008 RL, 42.3% pass rate in healthy difficulty range).</p>
             <p><strong>Math Generation Module:</strong> We synthesize <strong>53,288 verified math problems</strong> via: (1) aggregate 10,506 seeds from 8 HF datasets, (2) apply 5 Evol-Instruct mutations via <strong>Kimi-K2.5</strong> → 5.1× expansion, (3) standardize MCQ→open-ended format, (4) generate reasoning traces with symbolic verification (96% pass), (5) tag complexity levels 0–4 for SFT/RL routing.</p>
-            <p><strong>Quality Validation Loop:</strong> A <strong>NeMo Evaluation harness</strong> (not primary generation, but validation) benchmarks 5 SOTA models (GLM-5-FP8, Minimax-M2.5, Kimi-K2.5, DeepSeek-V3.2, GPT-OSS-120B) across 4 datasets, producing pass-rate reports. Feeds performance signals back into generation for iterative dataset improvement.</p>
-            <p><strong>Additional Generations:</strong> Step 5 generates 400+ original problems synthetically. Step 6 creates dataset-inspired variants. Step 7 schema-converts external datasets (DeepMath, AutoMathText, AM-DeepSeek) into unified format.</p>
+            <p><strong>Quality Validation Loop:</strong> The <strong>NeMo Pipeline has two synergistic branches:</strong></p>
+            <p><strong>Evaluation Branch (Steps 1–4):</strong> Benchmarks 5 SOTA models (GLM-5-FP8, Minimax-M2.5, Kimi-K2.5, DeepSeek-V3.2, GPT-OSS-120B) across 4 HuggingFace datasets (GAIR/LIMO, simplescaling/s1K, TIGER-Lab/TheoremQA, twinkle-ai/tw-math-reasoning-2k) to identify which model generates the highest-quality problems. <strong>Result: Kimi-K2.5 identified as best performer.</strong></p>
+            <p><strong>Generation Branch (Steps 5–7):</strong> Uses the best model identified (Kimi-K2.5) to synthetically generate new problems by leveraging HF datasets as inspiration. Step 5 generates 400+ original math problems (8 topics × 5 difficulty levels). Step 6 creates dataset-inspired variants with progressive difficulty scaling and duplicate deduplication. Step 7 schema-converts external datasets (DeepMath-103K, AutoMathText, AM-DeepSeek-R1) into unified format for downstream training. <strong>Output: 53,288 verified samples with zero repetition, difficulty-tagged 0–4.</strong></p>
           </div>
         </div>
 
@@ -1023,21 +1024,21 @@
 
         <!-- NeMo Eval Pipeline -->
         <div class="pipe-card">
-          <div class="pipe-title"><span class="pipe-dot pd-teal"></span>NeMo Validation Pipeline — Generated Data Quality Assurance &amp; Augmentation</div>
+          <div class="pipe-title"><span class="pipe-dot pd-teal"></span>NeMo Pipeline — Two-Branch Design: Model Evaluation (Steps 1–4) → Best Model Selection → Generation (Steps 5–7)</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div>
-              <div style="font-size:9px;font-weight:700;color:#064e3b;margin-bottom:5px">Evaluation Branch (Steps 1–4)
+              <div style="font-size:9px;font-weight:700;color:#064e3b;margin-bottom:5px">Evaluation Branch (Steps 1–4) — Identify Best Model
               </div>
               <div class="flow-v">
                 <div class="fv-row">
                   <div class="fv-box fn-teal">Step 1<br />Data Load</div>
                   <div class="fv-arrow">↓</div>
-                  <div class="fv-desc">Load LIMO, s1K, TheoremQA, TW-Math from HF Hub → input.jsonl</div>
+                  <div class="fv-desc">Load 4 HF datasets: LIMO, s1K, TheoremQA, TW-Math → input.jsonl</div>
                 </div>
                 <div class="fv-row">
                   <div class="fv-box fn-teal">Step 2<br />API Calls</div>
                   <div class="fv-arrow">↓</div>
-                  <div class="fv-desc">5 models in parallel · resume-safe · 600s timeout per call</div>
+                  <div class="fv-desc">Test 5 models in parallel · resume-safe · 600s timeout per call</div>
                 </div>
                 <div class="fv-row">
                   <div class="fv-box fn-gray">Step 3<br />Postproc</div>
@@ -1047,38 +1048,36 @@
                 <div class="fv-row">
                   <div class="fv-box fn-gray">Step 4<br />Evaluate</div>
                   <div class="fv-arrow">↓</div>
-                  <div class="fv-desc">Pass-rate CSV · best model identification · comparison table</div>
+                  <div class="fv-desc">Compare 5 models · <strong>Kimi-K2.5 = BEST</strong> → Use for generation</div>
                 </div>
               </div>
             </div>
             <div>
-              <div style="font-size:9px;font-weight:700;color:#5b21b6;margin-bottom:5px">Generation Branch (Steps 5–7)
+              <div style="font-size:9px;font-weight:700;color:#5b21b6;margin-bottom:5px">Generation Branch (Steps 5–7) — Generate via Best Model (Kimi)
               </div>
               <div class="flow-v">
                 <div class="fv-row">
-                  <div class="fv-box fn-purple">Step 5<br />Original<br />Gen</div>
+                  <div class="fv-box fn-purple">Step 5<br />Original<br />Gen (Kimi)</div>
                   <div class="fv-arrow">↓</div>
-                  <div class="fv-desc">8 topics × 5 difficulties × 10 per combo → 400 novel math problems via Kimi</div>
+                  <div class="fv-desc">8 topics × 5 difficulties × 10 per combo → 400 novel math problems via <strong>Kimi-K2.5</strong></div>
                 </div>
                 <div class="fv-row">
-                  <div class="fv-box fn-purple">Step 6<br />Dataset<br />Variants</div>
+                  <div class="fv-box fn-purple">Step 6<br />Dataset<br />Variants (Kimi)</div>
                   <div class="fv-arrow">↓</div>
-                  <div class="fv-desc">Dataset-inspired variants · progressive difficulty 1–5 · duplicate detection
+                  <div class="fv-desc">Mine HF datasets, generate inspired variants · progressive difficulty 1–5 · <strong>zero duplicate</strong>
                   </div>
                 </div>
                 <div class="fv-row">
                   <div class="fv-box fn-gray">Step 7<br />Schema<br />Convert</div>
                   <div class="fv-arrow">↓</div>
-                  <div class="fv-desc">Normalise AM-DeepSeek, Big-Math-RL, AutoMathText, DeepMath-103K</div>
+                  <div class="fv-desc">Normalize external datasets (DeepMath, AutoMathText, AM-DeepSeek) → unified format ready for training</div>
                 </div>
               </div>
             </div>
           </div>
           <div
             style="margin-top:8px;padding:6px 8px;background:#ecfdf5;border-radius:5px;border:1px solid #a7f3d0;font-size:8.5px;color:#064e3b">
-            <strong>5 models:</strong> GLM-5-FP8 (node064) · Minimax-M2.5 (node043) · Kimi-K2.5 (node019) ·
-            DeepSeek-V3.2 (node017) · GPT-OSS-120B (172.17.99.11) &nbsp;|&nbsp; <strong>Answer extraction:</strong>
-            7-tier fallback: \boxed{} → plain number → bold → equals → last number
+            <strong>PIPELINE LOGIC:</strong> Evaluate all 5 models on 4 datasets (Steps 1–4) to identify the best performer: <strong>Kimi-K2.5</strong>. Then use Kimi-K2.5 as the generation engine (Steps 5–7) to synthesize 53,288 new math problems with automatic difficulty scaling and duplicate elimination. <strong>Result:</strong> 53K+ verified samples from the best model, ready for LLM training.
           </div>
         </div>
 
