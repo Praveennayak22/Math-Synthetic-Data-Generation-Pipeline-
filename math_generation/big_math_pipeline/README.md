@@ -48,30 +48,95 @@ Step 7: Serialize to Parquet (final output dataset)
 
 ## Installation
 
+### Pre-Flight Checklist
+
+Before starting, verify you have:
+
+- [ ] **Python 3.9+** — `python --version` should return 3.9 or higher
+- [ ] **CUDA 12.0+** (GPU recommended) — `nvidia-smi` should work
+- [ ] **100GB+ free disk space** — `df -h` or disk usage in Settings
+- [ ] **HuggingFace account** with API token from https://huggingface.co/settings/tokens
+- [ ] **Model endpoint access** — cluster or TensorStudio API key
+- [ ] **Git installed** — `git --version` should work
+
 ### Prerequisites
-- Python 3.9+
-- CUDA 12.0+ (for tensor computation)
-- ~100GB disk space (for cached datasets)
+
+- **Python**: 3.9+
+- **GPU**: CUDA 12.0+ (recommended for inference)
+- **Storage**: ~100GB disk space (for cached datasets)
+- **Network**: Access to HuggingFace Hub + model endpoint
 
 ### Setup
 
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/your-org/math-pipeline.git
 cd math-pipeline
 
-# Create and activate virtual environment (recommended)
+# Create and activate virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Verify Python in venv
+python --version           # Should be 3.9+
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment variables
+# Verify installation
+python -c "import torch, datasets, yaml; print('✓ Core deps OK')"
+
+# Configure environment
 cp .env.example .env
-# Edit .env with:
-# - HF_TOKEN: Your Hugging Face API token (for dataset access)
-# - MODEL_API_KEY: API key for teacher model inference (DeepSeek, OpenAI, etc.)
+# Edit .env with credentials (see next section)
+```
+
+## Environment Configuration
+
+### .env Setup
+
+Create `.env` file with the following variables:
+
+```bash
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 1. HuggingFace Dataset Access
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export HF_TOKEN="hf_xxxxxxxxxxxxxxxx"
+# Get token: https://huggingface.co/settings/tokens
+# Create a "Read" token for dataset access
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 2. Model API Access
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export MODEL_API_KEY="your_api_key_here"
+# Used for teacher model inference
+# Obtain from: TensorStudio, OpenAI, or your cluster admin
+
+export MODEL_ENDPOINT="http://soketlab-node054:30000/v1/chat/completions"
+# Override endpoint from config.yaml if needed
+# For local cluster: http://soketlab-nodeXXX:30000/v1/chat/completions
+# For TensorStudio: https://api.tensorstudio.ai/...
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 3. Cache & Storage
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export HF_CACHE_DIR="./data/hf_cache"
+# Where to store downloaded datasets locally
+```
+
+### Verify Environment
+
+```bash
+# Load .env and test
+source .env
+echo "HF_TOKEN: ${HF_TOKEN:0:10}..."    # Show first 10 chars
+echo "MODEL_ENDPOINT: $MODEL_ENDPOINT"  # Show endpoint
+
+# Test HuggingFace token
+huggingface-cli whoami                  # Should show username
+
+# Test cluster endpoint (if using internal node)
+curl -X GET http://soketlab-node054:30000/health
 ```
 
 ## Configuration
@@ -80,57 +145,153 @@ Edit `config/config.yaml` to customize pipeline behavior:
 
 ```yaml
 huggingface:
-  token_env: HF_TOKEN
-  model_api_key_env: MODEL_API_KEY
-  cache_dir: data/hf_cache
+  token_env: HF_TOKEN              # Environment variable for HF token
+  model_api_key_env: MODEL_API_KEY # Environment variable for API key
+  cache_dir: data/hf_cache         # Local cache for downloaded datasets
 
 datasets:
+  # Enable/disable datasets by setting enabled: true/false
+  theoremqa:
+    enabled: true                  # Currently enabled dataset
+    repo_id: TIGER-Lab/TheoremQA  # HuggingFace dataset ID
+    split: test                    # Dataset split (train/test/validation)
+    max_samples: null              # null = use entire; or specify count
+    math_only: true                # Filter for math problems only
+  
+  # Other available datasets (set enabled: true to use):
   numina_math:
-    enabled: true
+    enabled: false
+    repo_id: AI-MO/NuminaMath-CoT
     max_samples: 200
   
-  # Enable/disable datasets by setting enabled: true/false
-  # Set max_samples: null to use entire dataset
+  limo:
+    enabled: false
+    repo_id: GAIR/LIMO
+    max_samples: 817
+```
+
+### Model & Pipeline Configuration
+
+```yaml
+evol_instruct:
+  model: kimi-k2.5                 # Model for difficulty mutations
+  num_mutations: 1                 # 1 = fast; 3 = full mutations
+  temperature: 0.8                 # Creativity level (0.0-1.0)
+  max_new_tokens: 2048             # Max output length
+
+teacher_model:
+  model: kimi-k2.5                 # Reasoning trace generator
+  endpoint: http://soketlab-node054:30000/v1/chat/completions
+  temperature: 0.6                 # Determinism (lower = more stable)
+  max_new_tokens: 1500             # Max trace length
+  parallel_workers: 2              # Concurrent API requests
+  timeout_seconds: 120             # Request timeout
+
+verification:
+  timeout_seconds: 30              # Max verification time
+  numeric_precision: 1e-6           # Comparison tolerance
+
+reasoning_scale:
+  levels:
+    0: "Minimal"     # Simple factual recall
+    1: "Basic"       # Straightforward logic
+    2: "Intermediate" # Multiple concepts
+    3: "Advanced"    # Sophisticated analysis
+    4: "Expert"      # Theoretical frameworks
 ```
 
 ### Step-Specific Configuration
 
-Each step may have additional configuration options in `config.yaml`. Check the source code for step-specific parameters:
+Each pipeline step is configurable:
 
-- **Step 2**: `evol_instruct.mutation_depth`, `difficulty_factors`
-- **Step 4**: `teacher_model.model_name`, `inference_batch_size`
-- **Step 5**: `verification.timeout`, `rejection_sampling_enabled`
-- **Step 6**: `reasoning_tagger.complexity_thresholds`
+- **Step 2** (Evol-Instruct): `evol_instruct.mutation_strategies`, `temperature`, `num_mutations`
+- **Step 3** (Format Converter): `format_converter.remove_choices`, `keep_original`
+- **Step 4** (Teacher Model): `teacher_model.temperature`, `max_new_tokens`, `enable_thinking`
+- **Step 5** (Verification): `verification.timeout_seconds`, `numeric_precision`
+- **Step 6** (Reasoning Tagger): `reasoning_scale.levels`
 
 ## Usage
+
+### Verify Setup (First Time Only)
+
+Before running the full pipeline, test your environment:
+
+```bash
+# Test with minimal data - no API calls
+python -m src.pipeline --steps 1 --dry-run
+
+# Expected output (should complete in <30 seconds):
+# ✓ Loaded seed data from config
+# ✓ Applied mutations
+# (No external API calls made)
+```
 
 ### Run Full Pipeline
 
 ```bash
+# Process all enabled datasets through all 7 steps
 python -m src.pipeline
+
+# With custom sample count
+python -m src.pipeline --seed-count 100
+
+# Show all available options
+python -m src.pipeline --help
 ```
 
-Outputs timestamped parquet files to `data/` with naming format:
+**Output**: Timestamped parquet files in `data/` with format:
 ```
 {domain}_{model}_{source}_{count}_{timestamp}.parquet
+
+Example:
+math_kimi-k2.5_theoremqa_250_2026-04-17_143022.parquet
 ```
 
 ### Run Specific Steps
 
+Skip expensive API calls by running specific steps:
+
 ```bash
-# Run only steps 1 and 2
+# Run only steps 1-2 (load data + difficulty scaling)
 python -m src.pipeline --steps 1,2
 
-# Dry-run: load and evolve, skip API calls
+# Run only step 4 (teacher reasoning generation)
+python -m src.pipeline --steps 4
+
+# Dry-run: test everything without API calls
 python -m src.pipeline --dry-run
+
+# Available step numbers:
+# 1 = Load seed data (NuminaMath, FineMath, etc.)
+# 2 = Evol-Instruct difficulty mutations
+# 3 = MCQ → open-ended conversion
+# 4 = Teacher model reasoning traces (<think> tags)
+# 5 = Math-Verify validation + rejection sampling
+# 6 = Reasoning-level tagging (0-4 complexity)
+# 7 = Serialize to Parquet files
 ```
 
-### Merge Output Parquets
-
-After multiple runs, merge parquet files by dataset:
+### Monitor Pipeline Execution
 
 ```bash
-python merge_parquets_by_dataset.py
+# Watch pipeline output in real-time
+tail -f logs/pipeline.log
+
+# Count generated parquet files
+watch -n 5 'ls -1 data/*.parquet | wc -l'
+
+# Check total output size
+du -sh data/
+
+# Inspect specific output file
+python -c "
+import pandas as pd
+df = pd.read_parquet('data/math_kimi-k2.5_theoremqa_250_*.parquet')
+print(f'Samples: {len(df)}')
+print(f'Verified: {df[\"verified\"].sum()}/{len(df)}')
+print(f'Pass rate: {100*df[\"verified\"].sum()/len(df):.1f}%')
+print(df.head(2))
+"
 ```
 
 ## Dataset Output Format
@@ -166,7 +327,7 @@ The pipeline assigns complexity scores (0-4):
 
 ## Cluster Submission
 
-Run jobs on a SLURM cluster:
+### Running on SLURM
 
 ```bash
 # Submit a single dataset processing job
@@ -174,13 +335,112 @@ sbatch run_aime_parallel_8.slurm
 
 # Submit all dataset jobs
 bash submit_jobs.sh
+
+# Monitor job status
+squeue -u $USER
+
+# View job logs
+tail -f slurm_output_*.log
 ```
 
 Each `.slurm` file configures:
-- GPU allocation
-- Job runtime and memory
-- Batch size and parallelization level
+- GPU allocation (typically 1-2 GPUs per job)
+- Job runtime (12-24 hours typical)
+- Memory allocation (40-80GB)
+- Batch size and parallelization
 - Output logging
+
+### Running Locally (nohup)
+
+For non-SLURM cluster environments:
+
+```bash
+# Setup
+mkdir -p logs output
+
+# Run in background with logging
+nohup python -m src.pipeline > logs/pipeline_$(date +%s).log 2>&1 &
+
+# Monitor progress
+tail -f logs/pipeline_*.log
+
+# Check if still running
+ps aux | grep "src.pipeline"
+
+# View complete output after job finishes
+cat logs/pipeline_*.log
+```
+
+## Testing & Validation
+
+### Quick Format Check
+
+```bash
+# After pipeline completes, validate output format
+python -c "
+import pandas as pd
+import json
+
+df = pd.read_parquet('data/math_kimi-k2.5_theoremqa_*.parquet')
+
+# Check required columns
+assert 'problem' in df.columns
+assert 'solution' in df.columns
+assert 'answer' in df.columns
+assert 'verified' in df.columns
+assert 'metadata' in df.columns
+
+print('✓ Output format valid')
+print(f'✓ {len(df)} samples')
+print(f'✓ {df[\"verified\"].sum()} verified ({100*df[\"verified\"].sum()/len(df):.1f}%)')
+"
+```
+
+### Inspect Sample Data
+
+```bash
+# View first sample with all fields
+python -c "
+import pandas as pd
+df = pd.read_parquet('data/math_kimi-k2.5_theoremqa_*.parquet')
+sample = df.iloc[0]
+
+print('=== Problem ===')
+print(sample['problem'][:300] + '...')
+print()
+print('=== Solution (first 300 chars) ===')
+print(sample['solution'][:300] + '...')
+print()
+print('=== Metadata ===')
+for key, value in sample['metadata'].items():
+    print(f'{key}: {value}')
+print()
+print(f'Verified: {sample[\"verified\"]}')
+"
+```
+
+### Merge Parquets
+
+After running pipeline multiple times:
+
+```bash
+# Merge all outputs for a dataset
+python merge_parquets_by_dataset.py
+
+# Or manually combine:
+python -c "
+import pandas as pd
+import glob
+
+files = glob.glob('data/math_kimi-k2.5_*.parquet')
+dfs = [pd.read_parquet(f) for f in files]
+combined = pd.concat(dfs, ignore_index=True)
+combined.to_parquet('data/final/math_combined.parquet')
+
+print(f'Combined {len(files)} files into {len(combined)} total samples')
+print(f'Pass rate: {100*combined[\"verified\"].sum()/len(combined):.1f}%')
+"
+```
 
 ## Project Structure
 
