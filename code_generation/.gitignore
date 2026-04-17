@@ -1,0 +1,18 @@
+# Ignore everything by default
+*
+
+# Un-ignore the files we want
+!.gitignore
+!requirements.txt
+!run_pipeline.sh
+!pipeline/
+!pipeline/**
+
+# But explicitly ignore scrape_questions.py
+pipeline/scrape_questions.py
+
+# Ignore cache
+pipeline/__pycache__/
+pipeline/**/__pycache__/
+*.pyc
+*.pyo

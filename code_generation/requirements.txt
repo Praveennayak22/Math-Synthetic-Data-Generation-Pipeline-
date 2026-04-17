@@ -1,0 +1,10 @@
+openai
+tqdm
+pytest
+pytest-timeout
+pandas
+pyarrow
+datasets
+sentence-transformers
+numpy
+openpyxl
