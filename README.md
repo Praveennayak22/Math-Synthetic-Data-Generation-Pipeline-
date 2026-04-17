@@ -212,7 +212,6 @@ python step1_prepare_data.py                   # NEMO
 | [BigMath README](math_generation/big_math_pipeline/README.md) | Complete BigMath pipeline documentation |
 | [Code Pipeline README](code_generation/README.md) | Complete code generation documentation |
 | [NEMO README](math_generation/nvidia_nemo_pipeline/nvidia_nemo_team2_submission/README.md) | NVIDIA NEMO methodology docs |
-| [Code Pipeline Report](CODE_PIPELINE_COMPLETION_REPORT.md) | Code pipeline analysis & improvements |
 
 ---
 
