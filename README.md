@@ -289,7 +289,6 @@ These pipelines can be:
 - **Chained**: Output from one pipeline as input to another
 - **Compared**: Evaluate which works best for your use case
 
-For research: See [Pipeline Comparison](README_COMPARISON_ANALYSIS.md) for detailed analysis.
 
 ---
 
